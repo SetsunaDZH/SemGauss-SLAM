@@ -9,28 +9,28 @@ config["run_name"] = f"{config['run_name']}_og"
 #
 # The first version does not introduce a heavy instance segmentation network.
 # It converts the existing SemGauss semantic output into connected-component
-# object candidates and fuses them with the 3D Gaussian map through projection,
-# depth consistency, and multi-frame assignment probabilities.
+# object candidates and fuses them with the 3D Gaussian map through current-pose
+# projection, depth consistency, and multi-frame assignment probabilities.
 config["object_graph"] = dict(
     enabled=True,
     max_objects=256,
 
     # 2D semantic connected-component proposal settings.
-    min_component_area=120,
+    min_component_area=80,
     ignore_class_ids=[0, 255],
 
     # Gaussian-object association settings.
-    assign_threshold=0.55,
-    min_gaussians_per_object=30,
-    lambda_mask=1.0,
-    lambda_depth=0.1,
-    lambda_semantic=0.5,
-    depth_sigma=0.05,
+    # These are intentionally relaxed for low-resolution conservative runs.
+    assign_threshold=0.30,
+    min_gaussians_per_object=10,
+    lambda_depth=0.05,
+    depth_sigma=0.10,
+    unknown_energy=3.0,
+    default_energy=8.0,
     forget=0.01,
 
     # Object matching.  This first implementation is intentionally conservative
     # and mainly relies on semantic-class consistency before geometry becomes stable.
-    match_iou_threshold=0.10,
     match_class_bonus=0.25,
 
     # Weak object and graph regularization terms.  Keep them small initially.
