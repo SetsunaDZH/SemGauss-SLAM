@@ -17,11 +17,9 @@ import os
 from importlib.machinery import SourceFileLoader
 from typing import Any, Dict, Set
 
-import torch
-
 import sem_gauss as base_slam
 from utils.common_utils import seed_everything
-from utils.object_gaussian_graph import ObjectGaussianGraph
+from utils.object_gaussian_graph_v2 import ObjectGaussianGraph
 
 
 _ORIGINAL_GET_LOSS = base_slam.get_loss
@@ -42,17 +40,17 @@ def _get_graph() -> ObjectGaussianGraph | None:
     return _OBJ_GRAPH
 
 
-def _maybe_update_graph(params, curr_data, mapping: bool, BA: bool) -> None:
+def _maybe_update_graph(params, curr_data, iter_time_idx: int, mapping: bool, BA: bool) -> None:
     """Update object nodes once per frame from the current semantic observation."""
     graph = _get_graph()
     if graph is None or not (mapping or BA):
         return
-    frame_id = int(curr_data.get("id", -1))
+    frame_id = int(curr_data.get("id", iter_time_idx))
     if frame_id in _UPDATED_FRAME_IDS:
         return
     if "se" not in curr_data:
         return
-    graph.update_from_semantic(params, curr_data, curr_data["se"])
+    graph.update_from_semantic(params, curr_data, curr_data["se"], time_idx=iter_time_idx)
     _UPDATED_FRAME_IDS.add(frame_id)
 
 
@@ -74,7 +72,7 @@ def get_loss_with_object_graph(
     visualize_tracking_loss=False,
 ):
     """Wrapper around the original loss to add weak object/graph regularizers."""
-    _maybe_update_graph(params, curr_data, mapping=mapping, BA=BA)
+    _maybe_update_graph(params, curr_data, iter_time_idx=iter_time_idx, mapping=mapping, BA=BA)
 
     result = _ORIGINAL_GET_LOSS(
         params,
